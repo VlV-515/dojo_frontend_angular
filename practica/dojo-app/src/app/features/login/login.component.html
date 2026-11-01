@@ -9,9 +9,7 @@
       <mat-form-field appearance="outline">
         <mat-label>Token</mat-label>
         <input matInput type="password" formControlName="token" autocomplete="off" required />
-        <mat-hint
-          >En local es el valor de <code>DOJO_TOKEN</code> (o el de default del dojo-api).</mat-hint
-        >
+        <mat-hint>El valor de <code>DOJO_TOKEN</code> del dojo-api</mat-hint>
         @if (form.controls.token.invalid) {
           <mat-error>El token es obligatorio</mat-error>
         }

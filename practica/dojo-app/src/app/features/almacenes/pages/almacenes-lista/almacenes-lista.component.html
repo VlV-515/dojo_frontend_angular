@@ -1,6 +1,10 @@
 <app-page-header
   titulo="Almacenes"
-  [subtitulo]="store.totalActivos() + ' activos de ' + store.almacenes().length"
+  [subtitulo]="
+    store.cargando()
+      ? 'Cargando…'
+      : store.totalActivos() + ' activos de ' + store.almacenes().length
+  "
 >
   <a mat-flat-button routerLink="nuevo" *appSiPermiso="'almacenes.editar'">Nuevo almacén</a>
 </app-page-header>
