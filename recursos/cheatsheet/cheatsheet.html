@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cheatsheet Frontend Angular</title>
+<style>
+  @page { size: Letter landscape; margin: 9mm 9mm 11mm 9mm; }
+  :root {
+    --tinta: #1d2330; --suave: #5b6475; --linea: #d8dce4;
+    --azul: #1f5fae; --rojo: #b42318; --rojo-f: #fdecea;
+    --verde: #1d7a4a; --verde-f: #e7f5ee; --ambar: #9a5b00; --ambar-f: #fff4e0;
+    --code-f: #f3f4f7;
+  }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { margin: 0; background: #fff; color: var(--tinta); }
+  body { font: 7.4pt/1.32 -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  .cabecera { display: flex; justify-content: space-between; align-items: flex-end;
+    border-bottom: 2px solid var(--tinta); padding-bottom: 4px; margin-bottom: 6px; }
+  .cabecera h1 { font-size: 15pt; margin: 0; }
+  .cabecera .sub { color: var(--suave); font-size: 7.6pt; text-align: right; }
+  .cols { column-count: 3; column-gap: 7px; }
+  .tarjeta { break-inside: avoid; border: 1px solid var(--linea); border-radius: 4px;
+    padding: 4px 5px 5px; margin: 0 0 6px; }
+  .tarjeta h2 { font-size: 8.4pt; margin: -4px -5px 4px; padding: 3px 5px; border-radius: 3px 3px 0 0;
+    background: var(--tinta); color: #fff; }
+  .t-ts h2 { background: #1f5fae; } .t-rx h2 { background: #b4237a; } .t-ng h2 { background: #c3002f; }
+  .t-rutas h2 { background: #6941c6; } .t-form h2 { background: #00788f; } .t-http h2 { background: #1d7a4a; }
+  .t-ui h2 { background: #3538cd; } .t-test h2 { background: #4e5ba6; } .t-build h2 { background: #b54708; }
+  .t-arq h2 { background: #7a5af8; } .t-seg h2 { background: var(--rojo); } .t-dojo h2 { background: #344054; }
+  h3 { font-size: 7.6pt; margin: 4px 0 2px; color: var(--azul); }
+  p { margin: 2px 0; } ul { margin: 2px 0; padding-left: 11px; } li { margin: 1px 0; }
+  code, pre { font-family: Menlo, "SF Mono", Consolas, monospace; font-size: 6.6pt; }
+  code { background: var(--code-f); padding: 0 2px; border-radius: 2px; }
+  pre { background: var(--code-f); margin: 2px 0; padding: 3px 4px; border-radius: 3px; white-space: pre-wrap; }
+  pre .c { color: #6b7280; }
+  table { width: 100%; border-collapse: collapse; margin: 2px 0; }
+  th, td { text-align: left; vertical-align: top; padding: 1.5px 3px; border-bottom: 1px solid var(--linea); }
+  th { font-size: 6.9pt; color: var(--suave); }
+  .alerta { background: var(--rojo-f); border-left: 3px solid var(--rojo); padding: 2px 4px; margin: 3px 0; }
+  .ok { background: var(--verde-f); border-left: 3px solid var(--verde); padding: 2px 4px; margin: 3px 0; }
+  .nota { background: var(--ambar-f); border-left: 3px solid var(--ambar); padding: 2px 4px; margin: 3px 0; }
+  .pie { position: fixed; bottom: -7mm; left: 0; right: 0; font-size: 6.4pt; color: var(--suave); }
+</style>
+</head>
+<body>
+
+<div class="cabecera">
+  <div>
+    <h1>Cheatsheet Frontend Angular</h1>
+    <div style="color:var(--suave)">TypeScript · RxJS · Angular 21 · Signals · Router · Forms · HTTP · Material · Jest · CI · Seguridad</div>
+  </div>
+  <div class="sub">Dojo Frontend Angular · <code>github.com/VlV-515/dojo_frontend_angular</code><br>
+  Todo lo que está en el front lo puede leer el usuario: cero secretos.</div>
+</div>
+<div class="pie">Cheatsheet Frontend Angular · Dojo Frontend Angular · Licencia MIT · Rev. 2026-11-01 · fuente: recursos/cheatsheet/cheatsheet.html · regenerar: python generar.py</div>
+
+<div class="cols">
+
+<!-- ============================== EQUIPO =============================== -->
+<div class="tarjeta t-seg">
+  <h2>Reglas de oro</h2>
+  <ul>
+    <li><b>El backend valida todo.</b> Guards y botones ocultos son experiencia de usuario, no seguridad.</li>
+    <li><b>Nada secreto en un environment</b>: termina en el bundle y se lee con las DevTools.</li>
+    <li><code>npm ci</code> al clonar y en CI. <code>npm install</code> solo para cambiar dependencias (toca el lock).</li>
+    <li>Node de <code>.nvmrc</code> (<code>nvm use</code>). Otra versión = "en mi máquina sí funciona".</li>
+    <li>Estado <b>inmutable</b>: arreglos y objetos nuevos, nunca <code>push</code> ni <code>obj.x = …</code>.</li>
+    <li>Nunca tragues errores: <code>catchError(() =&gt; EMPTY)</code> sin aviso deja spinners eternos.</li>
+    <li>Rutas siempre <b>lazy</b>; privadas siempre con <code>canMatch</code>.</li>
+  </ul>
+</div>
+
+<div class="tarjeta t-dojo">
+  <h2>Arranque</h2>
+  <pre>nvm use                      <span class="c"># Node 22</span>
+cd practica/katas && npm ci && npm test      <span class="c"># rojo</span>
+cd ../dojo-app && npm ci && npm test         <span class="c"># verde</span>
+npm run start:mock           <span class="c"># sin backend, :4200</span>
+npm start                    <span class="c"># dojo-api en :1099</span></pre>
+  <p>Token local del dojo-api y del mock: <code>dojo-local-inseguro</code>. Swagger: <code>localhost:1099/swagger/index.html</code>.</p>
+</div>
+
+<div class="tarjeta t-dojo">
+  <h2>Comandos del dojo</h2>
+  <table data-w="44,56">
+    <tr><th>Comando</th><th>Para qué</th></tr>
+    <tr><td><code>npm run test:typescript</code> / <code>test:rxjs</code></td><td>Katas 02 y 03 (katas/)</td></tr>
+    <tr><td><code>npm run test:solucion</code></td><td>Solución de referencia: <code>./ejercicios</code> se mapea a <code>./solucion</code></td></tr>
+    <tr><td><code>npm test</code></td><td>Base de dojo-app (sin retos)</td></tr>
+    <tr><td><code>npm run reto:a</code> · <code>b</code> · <code>c</code></td><td>Retos de los módulos 06, 09 y 14</td></tr>
+    <tr><td><code>npm run lint</code> / <code>format:check</code></td><td>angular-eslint / Prettier</td></tr>
+    <tr><td><code>npm run build</code></td><td>Producción en <code>dist/dojo-app/browser</code></td></tr>
+    <tr><td><code>/progreso /pista /revisar-reto /examen</code></td><td>Sensei en Claude Code</td></tr>
+  </table>
+</div>
+
+<div class="tarjeta t-ng">
+  <h2>Estructura de un front empresarial</h2>
+  <pre>src/app/
+  core/       <span class="c"># 1 instancia: auth, http, errores, ui, mock</span>
+  shared/     <span class="c"># reutilizable sin estado: componentes, pipes</span>
+  features/   <span class="c"># 1 carpeta por módulo de negocio</span>
+    almacenes/
+      models/ services/ state/ pages/
+      almacenes.routes.ts
+src/environments/  src/testing/</pre>
+  <p>Alias: <code>@core/*</code>, <code>@shared/*</code>, <code>@env/*</code>. Nada de <code>../../../</code>.</p>
+</div>
+
+<!-- ============================ TYPESCRIPT ============================ -->
+<div class="tarjeta t-ts">
+  <h2>TypeScript del día a día</h2>
+  <table data-w="40,60">
+    <tr><td><code>Respuesta&lt;T&gt;</code></td><td>Genérico: una envoltura para todo</td></tr>
+    <tr><td><code>'todos' | 'activos'</code></td><td>Unión de literales en vez de strings sueltos</td></tr>
+    <tr><td><code>Partial / Pick / Omit</code></td><td>Derivar tipos, no copiarlos</td></tr>
+    <tr><td><code>Record&lt;K, V&gt;</code></td><td>Diccionarios</td></tr>
+    <tr><td><code>readonly T[]</code></td><td>Que nadie mute</td></tr>
+    <tr><td><code>a?.b ?? 'x'</code></td><td>Encadenamiento opcional + valor por defecto</td></tr>
+    <tr><td><code>unknown</code> vs <code>any</code></td><td>unknown obliga a validar; any apaga el compilador</td></tr>
+  </table>
+  <pre>type Estado&lt;T&gt; =
+  | { tipo: 'cargando' }
+  | { tipo: 'exito'; datos: T }
+  | { tipo: 'error'; mensaje: string };
+switch (e.tipo) { …
+  default: { const n: never = e; return n; } }</pre>
+  <pre>function esAlmacen(x: unknown): x is Almacen {
+  return typeof x === 'object' &amp;&amp; x !== null &amp;&amp; …;
+}</pre>
+  <div class="nota"><code>http.get&lt;T&gt;()</code> no valida nada: el tipo es una promesa al compilador.</div>
+</div>
+
+<!-- =============================== RXJS =============================== -->
+<div class="tarjeta t-rx">
+  <h2>RxJS: operadores clave</h2>
+  <table data-w="36,64">
+    <tr><td><code>map</code></td><td>Desenvolver <code>r =&gt; r.datos</code></td></tr>
+    <tr><td><code>filter</code></td><td>Ignorar (diálogo cancelado)</td></tr>
+    <tr><td><code>tap</code></td><td>Efecto lateral sin cambiar el valor</td></tr>
+    <tr><td><code>catchError</code></td><td>Convertir o re-lanzar normalizado</td></tr>
+    <tr><td><code>finalize</code></td><td>Apagar carga: corre en éxito, error y cancelación</td></tr>
+    <tr><td><code>debounceTime + distinctUntilChanged</code></td><td>Buscadores</td></tr>
+    <tr><td><code>combineLatest</code></td><td>Lista + filtros</td></tr>
+    <tr><td><code>startWith</code></td><td>Estado inicial "cargando"</td></tr>
+    <tr><td><code>retry(n)</code></td><td>Reintentar (solo idempotentes)</td></tr>
+    <tr><td><code>shareReplay</code></td><td>Caché de catálogos (<code>bufferSize: 1</code>)</td></tr>
+  </table>
+</div>
+
+<div class="tarjeta t-rx">
+  <h2>Los cuatro *Map</h2>
+  <table data-w="24,38,38">
+    <tr><th>Operador</th><th>Si llega otro valor…</th><th>Úsalo en</th></tr>
+    <tr><td><code>switchMap</code></td><td>cancela el anterior</td><td>buscador, cambio de selección</td></tr>
+    <tr><td><code>concatMap</code></td><td>encola</td><td>guardados en orden</td></tr>
+    <tr><td><code>mergeMap</code></td><td>en paralelo</td><td>cargas independientes</td></tr>
+    <tr><td><code>exhaustMap</code></td><td>lo ignora</td><td>botón Guardar con doble clic</td></tr>
+  </table>
+  <pre>texto$.pipe(debounceTime(300), map(t =&gt; t.trim()),
+  distinctUntilChanged(),
+  switchMap(t =&gt; buscar(t).pipe(
+    catchError(() =&gt; of([])))));</pre>
+  <div class="alerta">Un Observable que falla <b>muere</b>: atrapa el error <b>dentro</b> del switchMap.</div>
+  <h3>Suscripciones (mejor a peor)</h3>
+  <p><code>toSignal()</code> / pipe <code>async</code> · <code>takeUntilDestroyed()</code> · <code>take(1)</code> · <code>unsubscribe()</code> en <code>ngOnDestroy</code>.</p>
+  <h3>Canicas</h3>
+  <p><code>-</code> 1 ms · <code>a</code> valor · <code>|</code> completa · <code>#</code> error · <code>(ab)</code> mismo ms. <code>TestScheduler.run</code> usa tiempo virtual.</p>
+</div>
+
+<!-- ============================== ANGULAR ============================= -->
+<div class="tarjeta t-ng">
+  <h2>Componente standalone</h2>
+  <pre>@Component({
+  selector: 'app-page-header',
+  imports: [MatButtonModule],     <span class="c">// lo que usa la plantilla</span>
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './page-header.component.html',
+})
+export class PageHeaderComponent {
+  readonly titulo = input.required&lt;string&gt;();
+  readonly subtitulo = input&lt;string&gt;();
+  readonly cerrar = output&lt;void&gt;();
+  private readonly store = inject(AlmacenesStore);
+}</pre>
+  <p><code>model()</code> = input escribible (<code>[(valor)]</code>). <code>&lt;ng-content /&gt;</code> = hueco para contenido.</p>
+</div>
+
+<div class="tarjeta t-ng">
+  <h2>Plantillas</h2>
+  <pre>{{ titulo() }}  [disabled]="guardando()"
+(click)="guardar()"
+@if (error(); as e) { &lt;p role="alert"&gt;{{ e }}&lt;/p&gt; }
+@else { … }
+@for (p of perfiles; track p.clave) { … }
+@empty { Sin datos }
+@switch (vista().tipo) { @case ('ok') { … }
+  @default { … } }
+@defer (on viewport) { &lt;app-grafica /&gt; }
+@placeholder { … }</pre>
+  <p><code>track</code> con id estable, nunca <code>$index</code> si la lista se reordena. Pipes puros mejor que métodos en la plantilla.</p>
+</div>
+
+<div class="tarjeta t-ng">
+  <h2>Signals</h2>
+  <table data-w="36,64">
+    <tr><td><code>signal(v)</code></td><td>Estado que cambia: <code>.set()</code> <code>.update(fn)</code></td></tr>
+    <tr><td><code>computed(() =&gt; …)</code></td><td>Derivado; solo se recalcula si cambian sus dependencias</td></tr>
+    <tr><td><code>effect(() =&gt; …)</code></td><td>Efecto lateral. Úsalo poco; no escribas signals dentro</td></tr>
+    <tr><td><code>linkedSignal</code></td><td>Escribible que se reinicia cuando cambia otro</td></tr>
+    <tr><td><code>toSignal(obs$)</code></td><td>Observable a signal (se desuscribe solo)</td></tr>
+    <tr><td><code>toObservable(sig)</code></td><td>Signal a Observable</td></tr>
+    <tr><td><code>.asReadonly()</code></td><td>Exponer sin permitir <code>.set()</code></td></tr>
+  </table>
+</div>
+
+<div class="tarjeta t-ng">
+  <h2>DI y detección de cambios</h2>
+  <ul>
+    <li><code>@Injectable({ providedIn: 'root' })</code>: singleton y tree-shakable.</li>
+    <li><code>InjectionToken</code> para valores (<code>API_URL</code>); en tests: <code>{ provide: API_URL, useValue: '/api' }</code>.</li>
+    <li><code>inject()</code> solo en contexto de inyección: campos, constructor, guards, interceptores.</li>
+  </ul>
+  <table data-w="22,78">
+    <tr><td><b>zone.js</b></td><td>Revisa tras cada evento, timer o petición. La mayoría de los proyectos existentes.</td></tr>
+    <tr><td><b>OnPush</b></td><td>Solo si cambia un input (por referencia), un evento propio o un signal leído.</td></tr>
+    <tr><td><b>Zoneless</b></td><td>Default en apps nuevas de Angular 21. Signals + eventos.</td></tr>
+  </table>
+  <div class="nota">"No se actualiza hasta que paso el mouse": mutación o cambio async sin signal en OnPush.</div>
+</div>
+
+<!-- ============================== RUTAS =============================== -->
+<div class="tarjeta t-rutas">
+  <h2>Rutas y lazy loading</h2>
+  <pre>{ path: 'almacenes',
+  canMatch: [authGuard, permisoGuard('almacenes.ver')],
+  loadChildren: () =&gt;
+    import('./features/almacenes/almacenes.routes')
+      .then(m =&gt; m.ALMACENES_ROUTES) },
+{ path: 'salud',
+  loadComponent: () =&gt;
+    import(…).then(m =&gt; m.SaludComponent) },
+{ path: '**', loadComponent: … }      <span class="c">// siempre al final</span></pre>
+  <p><code>provideRouter(routes, withHashLocation(), withComponentInputBinding())</code>: <code>:id</code> llega como <code>input()</code>.</p>
+  <table data-w="22,78">
+    <tr><td>Hash <code>/#/x</code></td><td>Cualquier hosting estático, sin reglas en el servidor</td></tr>
+    <tr><td>Path <code>/x</code></td><td>URLs limpias; el servidor reescribe todo a <code>index.html</code></td></tr>
+  </table>
+</div>
+
+<div class="tarjeta t-rutas">
+  <h2>Guards funcionales</h2>
+  <table data-w="28,72">
+    <tr><td><code>canMatch</code></td><td>Sesión y permisos. Si falla, el chunk lazy <b>no se descarga</b></td></tr>
+    <tr><td><code>canActivate</code></td><td>Ya elegida la ruta</td></tr>
+    <tr><td><code>canDeactivate</code></td><td>Cambios sin guardar</td></tr>
+    <tr><td><code>resolve</code></td><td>Precargar (bloquea la navegación)</td></tr>
+  </table>
+  <pre>export const authGuard: CanMatchFn = (_r, segs) =&gt;
+  inject(SesionService).autenticado()
+    ? true
+    : inject(Router).createUrlTree(['/login'],
+        { queryParams: { volver } });</pre>
+  <ul>
+    <li>Devuelve <code>UrlTree</code>, no navegues dentro del guard.</li>
+    <li>Observable en guard: <code>take(1)</code> (canMatch corre en cada navegación).</li>
+    <li><code>canLoad</code> está obsoleto: es <code>canMatch</code>.</li>
+  </ul>
+</div>
+
+<!-- ============================ FORMULARIOS =========================== -->
+<div class="tarjeta t-form">
+  <h2>Formularios reactivos tipados</h2>
+  <pre>form = inject(NonNullableFormBuilder).group({
+  clave:  ['', [Validators.required, claveValida]],
+  nombre: ['', [Validators.required, noSoloEspacios,
+                Validators.maxLength(80)]],
+});
+guardar() {
+  if (this.form.invalid) {
+    this.form.markAllAsTouched(); return;
+  }
+  const { clave, nombre } = this.form.getRawValue();
+  <span class="c">// { clave: string; nombre: string }</span>
+}</pre>
+  <ul>
+    <li><code>getRawValue()</code> incluye deshabilitados; <code>value</code> no.</li>
+    <li><code>required</code> acepta <code>"   "</code>: usa <code>noSoloEspacios</code>.</li>
+    <li>No deshabilites Guardar por invalidez; sí mientras guarda.</li>
+    <li>409 del servidor junto al campo: <code>control.setErrors({ servidor: msg })</code>.</li>
+    <li>Validador = <code>(control) =&gt; ValidationErrors | null</code>, una regla y un nombre.</li>
+  </ul>
+</div>
+
+<!-- =============================== HTTP =============================== -->
+<div class="tarjeta t-http">
+  <h2>Servicio HTTP tipado</h2>
+  <pre>@Injectable({ providedIn: 'root' })
+export class AlmacenesService {
+  private http = inject(HttpClient);
+  private url = `${inject(API_URL)}/almacenes`;
+  listar(soloActivos = false): Observable&lt;Almacen[]&gt; {
+    const params = soloActivos
+      ? new HttpParams().set('activos', 'true')
+      : undefined;
+    return this.http
+      .get&lt;Respuesta&lt;Almacen[]&gt;&gt;(this.url, { params })
+      .pipe(map(r =&gt; r.datos ?? []));
+  }
+}</pre>
+  <p>Devuelve Observable · desenvuelve <code>datos</code> · sin toasts · <code>HttpParams</code>, no strings concatenados.</p>
+</div>
+
+<div class="tarjeta t-http">
+  <h2>Interceptores y política de errores</h2>
+  <pre>withInterceptors([carga, auth, error,
+  ...(mock ? [mockInterceptor] : [])])
+petición:  carga -&gt; auth -&gt; error -&gt; mock/backend
+respuesta: carga &lt;- auth &lt;- error &lt;- mock/backend</pre>
+  <table data-w="30,70">
+    <tr><th>Status</th><th>Quién lo muestra</th></tr>
+    <tr><td>0, 403, 5xx</td><td>Interceptor (toast)</td></tr>
+    <tr><td>401</td><td>Interceptor: cierra sesión y va a /login</td></tr>
+    <tr><td>400, 404, 409</td><td>Componente, junto al campo o la tabla</td></tr>
+  </table>
+  <ul>
+    <li><code>req.clone({ setHeaders })</code>: las peticiones son inmutables.</li>
+    <li>Token solo a <b>tu</b> API (<code>req.url.startsWith(apiUrl)</code>).</li>
+    <li>Opciones por petición: <code>HttpContextToken</code> (<code>silencioso()</code>), no headers inventados.</li>
+    <li><code>ErrorApp.notificado</code> evita mostrar dos veces.</li>
+  </ul>
+</div>
+
+<div class="tarjeta t-http">
+  <h2>Proxy, CORS y mock</h2>
+  <pre><span class="c">// proxy.conf.json</span>
+{ "/api": { "target": "http://localhost:1099",
+            "pathRewrite": { "^/api": "" } } }</pre>
+  <p><code>apiUrl: '/api'</code> en todos los environments: sin CORS en desarrollo y sin dominios en el bundle. En producción, un reverse proxy.</p>
+  <div class="ok">El mock responde con el <b>mismo contrato</b> (envoltura, códigos 401/404/409). Si cambia el backend, cambia el mock en el mismo PR.</div>
+</div>
+
+<!-- =============================== ESTADO ============================= -->
+<div class="tarjeta t-ng">
+  <h2>Store con signals</h2>
+  <pre>private readonly _items = signal&lt;Almacen[]&gt;([]);
+readonly items = this._items.asReadonly();
+readonly filtro = signal('');
+readonly filtrados = computed(() =&gt;
+  filtrar(this._items(), this.filtro()));
+crear(a: AlmacenAlta) {
+  return this.service.crear(a).pipe(
+    <span class="c">// pesimista: después de que el backend confirma</span>
+    tap(n =&gt; this._items.update(l =&gt; [...l, n])));
+}</pre>
+  <table data-w="34,66">
+    <tr><td>Local</td><td><code>signal</code> en el componente</td></tr>
+    <tr><td>Compartible por URL</td><td>Query params (<code>?q=</code>, página)</td></tr>
+    <tr><td>De feature</td><td>Store de la feature</td></tr>
+    <tr><td>Global</td><td>Servicios de <code>core/</code> (sesión, carga)</td></tr>
+  </table>
+  <p>NgRx Signal Store: muchas features CRUD iguales. NgRx Store: estado global complejo y muchos equipos.</p>
+</div>
+
+<!-- ================================ UI ================================ -->
+<div class="tarjeta t-ui">
+  <h2>Angular Material</h2>
+  <table data-w="40,60">
+    <tr><td><code>mat-table</code> + <code>*matNoDataRow</code></td><td>Tabla con estado vacío</td></tr>
+    <tr><td><code>mat-paginator</code></td><td>Al filtrar, regresa a la página 1</td></tr>
+    <tr><td><code>mat-form-field</code> + <code>mat-error</code></td><td>Campos con error</td></tr>
+    <tr><td><code>MatDialog</code></td><td><code>afterClosed()</code> -&gt; Observable</td></tr>
+    <tr><td><code>MatSnackBar</code></td><td>Un servicio único de avisos</td></tr>
+    <tr><td><code>MatPaginatorIntl</code></td><td>Traducir textos de Material</td></tr>
+  </table>
+  <pre>html { @include mat.theme((color: mat.$azure-palette)); }
+.x { color: var(--mat-sys-on-primary-container); }</pre>
+  <div class="alerta">Nada de colores fijos ni <code>::ng-deep</code>: usa variables <code>--mat-sys-*</code>.</div>
+</div>
+
+<div class="tarjeta t-ui">
+  <h2>Accesibilidad y formato es-MX</h2>
+  <ul>
+    <li>Todo control con nombre: <code>mat-label</code>, <code>aria-label="Editar ALM-01"</code>.</li>
+    <li><code>&lt;button&gt;</code> para acciones, <code>&lt;a routerLink&gt;</code> para navegar.</li>
+    <li><code>role="alert"</code> en errores, <code>role="status"</code> en avisos.</li>
+    <li>Si <code>getByRole</code> no lo encuentra, un lector de pantalla tampoco.</li>
+  </ul>
+  <pre>registerLocaleData(localeEsMx);
+{ provide: LOCALE_ID, useValue: 'es-MX' }
+{{ total | currency: 'MXN' }}      <span class="c">$1,234.50</span>
+{{ fecha | date: 'mediumDate' }}   <span class="c">1 nov 2026</span></pre>
+</div>
+
+<!-- ============================== TESTING ============================= -->
+<div class="tarjeta t-test">
+  <h2>Testing con Jest</h2>
+  <pre>npx jest almacenes          <span class="c"># por archivo</span>
+npx jest -t "filtra"        <span class="c"># por nombre</span>
+npm run test:coverage</pre>
+  <h3>HttpTestingController</h3>
+  <pre>providers: [provideHttpClient(),
+            provideHttpClientTesting()]
+service.listar().subscribe(l =&gt; (r = l));
+backend.expectOne('/api/almacenes')
+  .flush({ codigo: 200, mensaje: 'ok', datos: [] });
+afterEach(() =&gt; backend.verify());</pre>
+  <h3>Guards</h3>
+  <pre>TestBed.runInInjectionContext(() =&gt;
+  authGuard(ruta, segmentos));</pre>
+</div>
+
+<div class="tarjeta t-test">
+  <h2>Testing Library y Playwright</h2>
+  <pre>await render(ListaComponent,
+  { providers: [...proveerApiMock()] });
+const caja = screen.getByRole('searchbox',
+  { name: 'Buscar' });
+await userEvent.type(caja, 'bodega');
+expect(screen.getByText('1 – 2 de 2'))
+  .toBeInTheDocument();</pre>
+  <table data-w="22,78">
+    <tr><td><code>getBy</code></td><td>Falla si no está</td></tr>
+    <tr><td><code>queryBy</code></td><td><code>null</code> si no está (afirmar ausencia)</td></tr>
+    <tr><td><code>findBy</code></td><td>Espera (asíncrono)</td></tr>
+  </table>
+  <p>Prioridad: rol + nombre &gt; label &gt; texto. Nunca clases CSS.</p>
+  <pre>npx playwright install chromium && npm run e2e</pre>
+  <p>E2E: pocos, de los flujos que más importan.</p>
+</div>
+
+<!-- =============================== BUILD ============================== -->
+<div class="tarjeta t-build">
+  <h2>Build y environments</h2>
+  <pre>"development": { "fileReplacements": [{
+  "replace": "src/environments/environment.ts",
+  "with":
+    "src/environments/environment.development.ts" }] }</pre>
+  <ul>
+    <li>Un environment por build; forma común en <code>environment.model.ts</code>.</li>
+    <li><b>Initial total</b> = lo que se descarga antes de pintar; lo vigilan los budgets.</li>
+    <li>Archivos con hash = caché larga. <code>index.html</code> sin caché.</li>
+    <li>Un solo build para varios entornos: <code>config.json</code> + <code>provideAppInitializer</code>.</li>
+  </ul>
+</div>
+
+<div class="tarjeta t-build">
+  <h2>CI mínimo de un front</h2>
+  <pre>- uses: actions/setup-node@v4
+  with: { node-version-file: .nvmrc, cache: npm }
+- run: npm ci
+- run: npm run lint
+- run: npm run format:check
+- run: npm test -- --ci
+- run: npm run build</pre>
+  <p>Mensajes de commit validados con commitlint + husky en muchos equipos: lee el error, casi siempre es el formato.</p>
+</div>
+
+<!-- ============================= SEGURIDAD ============================ -->
+<div class="tarjeta t-seg">
+  <h2>Seguridad en el front</h2>
+  <table data-w="44,56">
+    <tr><td><code>{{ x }}</code></td><td>Escapado: seguro</td></tr>
+    <tr><td><code>[innerHTML]</code></td><td>Sanitizado por Angular</td></tr>
+    <tr><td><code>bypassSecurityTrust*</code></td><td>Peligro con datos del usuario</td></tr>
+    <tr><td><code>el.innerHTML = …</code></td><td>Te saltas a Angular: XSS</td></tr>
+  </table>
+  <ul>
+    <li>Token: memoria &gt; <code>sessionStorage</code> &gt; <code>localStorage</code>. Mejor: cookie <code>HttpOnly</code>.</li>
+    <li>Nunca token en query params, logs ni mensajes de error.</li>
+    <li><code>?volver=</code>: solo rutas internas (no <code>//</code>, <code>/\</code>, <code>https:</code>).</li>
+    <li>Sin source maps ni detalles técnicos del backend en producción.</li>
+    <li><code>npm audit --omit=dev</code>. Cabeceras (CSP, HSTS) las pone el servidor.</li>
+  </ul>
+</div>
+
+<!-- =============================== LEGADO ============================= -->
+<div class="tarjeta t-arq">
+  <h2>Lo vas a encontrar así</h2>
+  <table data-w="47,53">
+    <tr><th>Legado</th><th>Moderno</th></tr>
+    <tr><td><code>NgModule</code> + <code>SharedModule</code></td><td>Standalone + <code>imports</code></td></tr>
+    <tr><td><code>constructor(private s: X)</code></td><td><code>inject(X)</code></td></tr>
+    <tr><td><code>*ngIf</code> <code>*ngFor</code></td><td><code>@if</code> <code>@for … track</code></td></tr>
+    <tr><td><code>@Input()</code> <code>@Output()</code> <code>ngOnChanges</code></td><td><code>input()</code> <code>output()</code> <code>computed</code></td></tr>
+    <tr><td><code>BehaviorSubject</code> + <code>async</code></td><td><code>signal</code> + <code>computed</code></td></tr>
+    <tr><td><code>UntypedFormGroup</code></td><td><code>NonNullableFormBuilder</code></td></tr>
+    <tr><td>Guards de clase, <code>canLoad</code></td><td><code>CanMatchFn</code></td></tr>
+    <tr><td><code>HTTP_INTERCEPTORS</code> de clase</td><td><code>withInterceptors([fn])</code></td></tr>
+    <tr><td><code>.toPromise()</code></td><td><code>firstValueFrom</code></td></tr>
+    <tr><td>Bootstrap grid, <code>::ng-deep</code></td><td>CSS grid/flex, variables del tema</td></tr>
+    <tr><td><code>moment</code></td><td>pipe <code>date</code>, <code>Intl</code></td></tr>
+  </table>
+  <pre>ng generate @angular/core:control-flow
+ng generate @angular/core:signal-input-migration
+ng generate @angular/core:inject</pre>
+</div>
+
+<div class="tarjeta t-dojo">
+  <h2>Checklist antes de abrir un PR</h2>
+  <ul>
+    <li><code>npm test</code>, <code>npm run lint</code>, <code>npm run format:check</code>, <code>npm run build</code> en verde.</li>
+    <li>Sin <code>any</code>, sin <code>console.log</code>, sin código comentado.</li>
+    <li>Rutas nuevas lazy y con <code>canMatch</code>; permiso registrado.</li>
+    <li>Errores: nada tragado, 4xx junto al campo, spinners que se apagan.</li>
+    <li>Estado inmutable; nada de suscripciones colgando.</li>
+    <li>Botones con nombre accesible; probado con teclado.</li>
+    <li>Mock actualizado si cambió el contrato.</li>
+    <li>Descripción: qué, por qué, cómo se probó, capturas.</li>
+  </ul>
+</div>
+
+</div>
+</body>
+</html>

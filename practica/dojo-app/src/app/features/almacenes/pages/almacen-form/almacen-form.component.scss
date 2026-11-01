@@ -1,0 +1,15 @@
+form {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 480px;
+}
+
+.botones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.error {
+  color: var(--mat-sys-error);
+}

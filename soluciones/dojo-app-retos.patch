@@ -1,0 +1,470 @@
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/app.component.html b/dojo-app/src/app/app.component.html
+--- a/dojo-app/src/app/app.component.html	2026-11-01 17:00:49
++++ b/dojo-app/src/app/app.component.html	2026-11-01 17:17:30
+@@ -11,6 +11,9 @@
+         *appSiPermiso="'almacenes.ver'"
+         >Almacenes</a
+       >
++      <a mat-button routerLink="/cajas" routerLinkActive="activo" *appSiPermiso="'cajas.ver'"
++        >Cajas</a
++      >
+       <a mat-button routerLink="/reportes" routerLinkActive="activo" *appSiPermiso="'reportes.ver'"
+         >Reportes</a
+       >
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/app.routes.ts b/dojo-app/src/app/app.routes.ts
+--- a/dojo-app/src/app/app.routes.ts	2026-11-01 17:00:49
++++ b/dojo-app/src/app/app.routes.ts	2026-11-01 17:17:30
+@@ -35,8 +35,18 @@
+   {
+     path: 'reportes',
+     title: 'Reportes',
++    canMatch: [authGuard, permisoGuard('reportes.ver')],
+     loadComponent: () =>
+       import('./features/reportes/reportes.component').then((m) => m.ReportesComponent),
++  },
++  {
++    path: 'cajas',
++    title: 'Cajas',
++    canMatch: [authGuard, permisoGuard('cajas.ver')],
++    loadComponent: () =>
++      import('./features/cajas/pages/cajas-lista/cajas-lista.component').then(
++        (m) => m.CajasListaComponent,
++      ),
+   },
+   {
+     path: '**',
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/core/auth/perfiles.ts b/dojo-app/src/app/core/auth/perfiles.ts
+--- a/dojo-app/src/app/core/auth/perfiles.ts	2026-11-01 16:54:13
++++ b/dojo-app/src/app/core/auth/perfiles.ts	2026-11-01 17:17:30
+@@ -5,7 +5,8 @@
+  *
+  * Convención: `<recurso>.<acción>`.
+  */
+-export type Permiso = 'almacenes.ver' | 'almacenes.editar' | 'reportes.ver';
++export type Permiso =
++  'almacenes.ver' | 'almacenes.editar' | 'reportes.ver' | 'cajas.ver' | 'cajas.editar';
+ 
+ export interface Perfil {
+   clave: string;
+@@ -17,11 +18,11 @@
+   {
+     clave: 'admin',
+     nombre: 'Administrador',
+-    permisos: ['almacenes.ver', 'almacenes.editar', 'reportes.ver'],
++    permisos: ['almacenes.ver', 'almacenes.editar', 'reportes.ver', 'cajas.ver', 'cajas.editar'],
+   },
+   {
+     clave: 'consulta',
+     nombre: 'Solo consulta',
+-    permisos: ['almacenes.ver'],
++    permisos: ['almacenes.ver', 'cajas.ver'],
+   },
+ ];
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/core/mock/mock-db.ts b/dojo-app/src/app/core/mock/mock-db.ts
+--- a/dojo-app/src/app/core/mock/mock-db.ts	2026-11-01 16:54:39
++++ b/dojo-app/src/app/core/mock/mock-db.ts	2026-11-01 17:17:30
+@@ -11,6 +11,20 @@
+   activo: boolean;
+ }
+ 
++/** Forma en la que el dojo-api manda una caja (`almacen_id` en snake_case, como el backend). */
++export interface CajaMock {
++  id: number;
++  nombre: string;
++  almacen_id: number;
++  abierta: boolean;
++}
++
++const CAJAS_SEMILLA: readonly CajaMock[] = [
++  { id: 1, nombre: 'Caja 1', almacen_id: 1, abierta: false },
++  { id: 2, nombre: 'Caja 2', almacen_id: 1, abierta: false },
++  { id: 3, nombre: 'Caja Mostrador', almacen_id: 2, abierta: false },
++];
++
+ const SEMILLA: readonly AlmacenMock[] = [
+   { id: 1, clave: 'ALM-01', nombre: 'Almacén Centro', activo: true },
+   { id: 2, clave: 'ALM-02', nombre: 'Almacén Norte', activo: true },
+@@ -34,9 +48,11 @@
+ @Injectable({ providedIn: 'root' })
+ export class MockDb {
+   almacenes: AlmacenMock[] = SEMILLA.map((a) => ({ ...a }));
++  cajas: CajaMock[] = CAJAS_SEMILLA.map((c) => ({ ...c }));
+ 
+   reiniciar(): void {
+     this.almacenes = SEMILLA.map((a) => ({ ...a }));
++    this.cajas = CAJAS_SEMILLA.map((c) => ({ ...c }));
+   }
+ 
+   siguienteId(lista: readonly { id: number }[]): number {
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/core/mock/mock.interceptor.ts b/dojo-app/src/app/core/mock/mock.interceptor.ts
+--- a/dojo-app/src/app/core/mock/mock.interceptor.ts	2026-11-01 17:00:49
++++ b/dojo-app/src/app/core/mock/mock.interceptor.ts	2026-11-01 17:17:30
+@@ -80,6 +80,40 @@
+     db.almacenes = db.almacenes.map((a) => (a.id === cambiado.id ? cambiado : a));
+     return ok(200, 'Almacén actualizado', cambiado);
+   }
++  const desactivar = /^\/almacenes\/(\d+)\/desactivar$/.exec(ruta);
++  if (desactivar && req.method === 'PUT') {
++    const almacen = db.almacenes.find((a) => a.id === Number(desactivar[1]));
++    if (!almacen) return error(404, 'Almacén no encontrado');
++    if (!almacen.activo) return error(409, 'El almacén ya está inactivo');
++    db.almacenes = db.almacenes.map((a) => (a.id === almacen.id ? { ...a, activo: false } : a));
++    return ok(200, 'Almacén desactivado', null);
++  }
++  if (req.method === 'GET' && ruta === '/cajas') {
++    const almacenId = Number(params.get('almacen_id'));
++    if (!Number.isInteger(almacenId) || almacenId <= 0)
++      return error(400, 'El parámetro almacen_id es requerido');
++    return ok(
++      200,
++      'Cajas consultadas',
++      db.cajas.filter((c) => c.almacen_id === almacenId),
++    );
++  }
++  if (req.method === 'POST' && ruta === '/cajas') {
++    const cuerpo = (req.body ?? {}) as { nombre?: string; almacen_id?: number };
++    const nombre = (cuerpo.nombre ?? '').trim();
++    if (!nombre || !cuerpo.almacen_id)
++      return error(400, 'Los campos nombre y almacen_id son requeridos');
++    if (!db.almacenes.some((a) => a.id === cuerpo.almacen_id))
++      return error(404, 'Almacén no encontrado');
++    const nueva = {
++      id: db.siguienteId(db.cajas),
++      nombre,
++      almacen_id: cuerpo.almacen_id,
++      abierta: false,
++    };
++    db.cajas = [...db.cajas, nueva];
++    return ok(201, 'Caja registrada', nueva);
++  }
+   if (req.method === 'GET' && ruta === '/reportes/almacenes.csv') {
+     const filas = db.almacenes.map((a) => `${a.id},${a.clave},${a.nombre},${a.activo}`);
+     const csv = ['id,clave,nombre,activo', ...filas].join('\n') + '\n';
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/features/almacenes/pages/almacenes-lista/almacenes-lista.component.html b/dojo-app/src/app/features/almacenes/pages/almacenes-lista/almacenes-lista.component.html
+--- a/dojo-app/src/app/features/almacenes/pages/almacenes-lista/almacenes-lista.component.html	2026-11-01 17:00:49
++++ b/dojo-app/src/app/features/almacenes/pages/almacenes-lista/almacenes-lista.component.html	2026-11-01 17:17:31
+@@ -65,6 +65,17 @@
+           *appSiPermiso="'almacenes.editar'"
+           >Editar</a
+         >
++        @if (almacen.activo) {
++          <button
++            mat-button
++            type="button"
++            (click)="desactivar(almacen)"
++            [attr.aria-label]="'Desactivar ' + almacen.clave"
++            *appSiPermiso="'almacenes.editar'"
++          >
++            Desactivar
++          </button>
++        }
+       </td>
+     </ng-container>
+ 
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/features/almacenes/pages/almacenes-lista/almacenes-lista.component.ts b/dojo-app/src/app/features/almacenes/pages/almacenes-lista/almacenes-lista.component.ts
+--- a/dojo-app/src/app/features/almacenes/pages/almacenes-lista/almacenes-lista.component.ts	2026-11-01 17:00:49
++++ b/dojo-app/src/app/features/almacenes/pages/almacenes-lista/almacenes-lista.component.ts	2026-11-01 17:17:31
+@@ -7,16 +7,21 @@
+   signal,
+ } from '@angular/core';
+ import { MatButtonModule } from '@angular/material/button';
++import { MatDialog } from '@angular/material/dialog';
+ import { MatFormFieldModule } from '@angular/material/form-field';
+ import { MatInputModule } from '@angular/material/input';
+ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+ import { MatSelectModule } from '@angular/material/select';
+ import { MatTableModule } from '@angular/material/table';
+ import { RouterLink } from '@angular/router';
++import { ErrorApp } from '@core/errores/error-app';
++import { NotificacionService } from '@core/ui/notificacion.service';
++import { confirmar } from '@shared/components/confirmar-dialog/confirmar-dialog.component';
+ import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
+ import { SiPermisoDirective } from '@shared/directives/si-permiso.directive';
+ import { EstatusPipe } from '@shared/pipes/estatus.pipe';
+-import { FiltroEstatus } from '../../models/almacen.model';
++import { filter, switchMap } from 'rxjs';
++import { Almacen, FiltroEstatus } from '../../models/almacen.model';
+ import { AlmacenesStore } from '../../state/almacenes.store';
+ 
+ /**
+@@ -46,6 +51,8 @@
+ })
+ export class AlmacenesListaComponent implements OnInit {
+   protected readonly store = inject(AlmacenesStore);
++  private readonly dialog = inject(MatDialog);
++  private readonly notificacion = inject(NotificacionService);
+ 
+   protected readonly columnas = ['clave', 'nombre', 'estatus', 'acciones'];
+   protected readonly tamanos = [5, 10, 25];
+@@ -70,6 +77,24 @@
+   protected filtrarEstatus(estatus: FiltroEstatus): void {
+     this.store.estatus.set(estatus);
+     this.indice.set(0);
++  }
++
++  protected desactivar(almacen: Almacen): void {
++    confirmar(this.dialog, {
++      titulo: 'Desactivar almacén',
++      mensaje: `${almacen.clave} · ${almacen.nombre} dejará de estar disponible para nuevas operaciones.`,
++      confirmar: 'Desactivar',
++    })
++      .pipe(
++        filter((confirmado) => confirmado),
++        switchMap(() => this.store.desactivar(almacen.id)),
++      )
++      .subscribe({
++        next: () => this.notificacion.exito(`Almacén ${almacen.clave} desactivado`),
++        error: (err: ErrorApp) => {
++          if (!err.notificado) this.notificacion.error(err.message);
++        },
++      });
+   }
+ 
+   protected cambiarPagina(evento: PageEvent): void {
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/features/almacenes/services/almacenes.service.ts b/dojo-app/src/app/features/almacenes/services/almacenes.service.ts
+--- a/dojo-app/src/app/features/almacenes/services/almacenes.service.ts	2026-11-01 17:00:49
++++ b/dojo-app/src/app/features/almacenes/services/almacenes.service.ts	2026-11-01 17:17:31
+@@ -34,4 +34,11 @@
+   actualizar(id: number, cambio: AlmacenCambio): Observable<Almacen> {
+     return this.http.put<Respuesta<Almacen>>(`${this.url}/${id}`, cambio).pipe(map((r) => r.datos));
+   }
++
++  /** Baja lógica: el almacén no se borra, queda inactivo (`PUT`, no `DELETE`). */
++  desactivar(id: number): Observable<void> {
++    return this.http
++      .put<Respuesta<null>>(`${this.url}/${id}/desactivar`, {})
++      .pipe(map(() => undefined));
++  }
+ }
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/features/almacenes/state/almacenes.store.ts b/dojo-app/src/app/features/almacenes/state/almacenes.store.ts
+--- a/dojo-app/src/app/features/almacenes/state/almacenes.store.ts	2026-11-01 17:00:49
++++ b/dojo-app/src/app/features/almacenes/state/almacenes.store.ts	2026-11-01 17:17:31
+@@ -65,6 +65,15 @@
+     return this.service.actualizar(id, cambio).pipe(tap((almacen) => this.reemplazar(almacen)));
+   }
+ 
++  desactivar(id: number): Observable<void> {
++    return this.service.desactivar(id).pipe(
++      tap(() => {
++        const almacen = this._almacenes().find((a) => a.id === id);
++        if (almacen) this.reemplazar({ ...almacen, activo: false });
++      }),
++    );
++  }
++
+   /** Sustituye un almacén de la lista por su versión nueva (inmutable). */
+   private reemplazar(almacen: Almacen): void {
+     this._almacenes.update((lista) => lista.map((a) => (a.id === almacen.id ? almacen : a)));
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/features/cajas/models/caja.model.ts b/dojo-app/src/app/features/cajas/models/caja.model.ts
+--- a/dojo-app/src/app/features/cajas/models/caja.model.ts	1969-12-31 18:00:00
++++ b/dojo-app/src/app/features/cajas/models/caja.model.ts	2026-11-01 17:17:31
+@@ -0,0 +1,13 @@
++/** Caja tal como la manda el dojo-api (`CajaDTO`). `almacen_id` va en snake_case como en el backend. */
++export interface Caja {
++  id: number;
++  nombre: string;
++  almacen_id: number;
++  abierta: boolean;
++}
++
++/** Cuerpo de `POST /cajas`. */
++export interface CajaAlta {
++  nombre: string;
++  almacen_id: number;
++}
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/features/cajas/pages/cajas-lista/cajas-lista.component.html b/dojo-app/src/app/features/cajas/pages/cajas-lista/cajas-lista.component.html
+--- a/dojo-app/src/app/features/cajas/pages/cajas-lista/cajas-lista.component.html	1969-12-31 18:00:00
++++ b/dojo-app/src/app/features/cajas/pages/cajas-lista/cajas-lista.component.html	2026-11-01 17:17:31
+@@ -0,0 +1,49 @@
++<app-page-header titulo="Cajas" subtitulo="Cajas registradoras por almacén" />
++
++<mat-form-field appearance="outline">
++  <mat-label>Almacén</mat-label>
++  <mat-select [value]="almacenId()" (selectionChange)="elegirAlmacen($event.value)">
++    @for (almacen of almacenes(); track almacen.id) {
++      <mat-option [value]="almacen.id">{{ almacen.clave }} · {{ almacen.nombre }}</mat-option>
++    }
++  </mat-select>
++</mat-form-field>
++
++@if (almacenElegido(); as almacen) {
++  <form
++    *appSiPermiso="'cajas.editar'"
++    [formGroup]="form"
++    (ngSubmit)="agregar()"
++    class="alta"
++    novalidate
++  >
++    <mat-form-field appearance="outline">
++      <mat-label>Nombre de la caja</mat-label>
++      <input matInput formControlName="nombre" maxlength="60" autocomplete="off" required />
++      @if (form.controls.nombre.invalid) {
++        <mat-error>{{ mensajeError(form.controls.nombre) }}</mat-error>
++      }
++    </mat-form-field>
++    <button mat-flat-button type="submit">Agregar caja</button>
++  </form>
++
++  <table mat-table [dataSource]="cajas()" aria-label="Cajas">
++    <ng-container matColumnDef="nombre">
++      <th mat-header-cell *matHeaderCellDef>Nombre</th>
++      <td mat-cell *matCellDef="let caja">{{ caja.nombre }}</td>
++    </ng-container>
++    <ng-container matColumnDef="estado">
++      <th mat-header-cell *matHeaderCellDef>Estado</th>
++      <td mat-cell *matCellDef="let caja">{{ caja.abierta ? 'Abierta' : 'Cerrada' }}</td>
++    </ng-container>
++    <tr mat-header-row *matHeaderRowDef="columnas"></tr>
++    <tr mat-row *matRowDef="let fila; columns: columnas"></tr>
++    <tr class="mat-row" *matNoDataRow>
++      <td class="mat-cell" [attr.colspan]="columnas.length">
++        {{ cargando() ? 'Cargando…' : 'Este almacén no tiene cajas' }}
++      </td>
++    </tr>
++  </table>
++} @else {
++  <p>Elige un almacén para ver sus cajas.</p>
++}
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/features/cajas/pages/cajas-lista/cajas-lista.component.ts b/dojo-app/src/app/features/cajas/pages/cajas-lista/cajas-lista.component.ts
+--- a/dojo-app/src/app/features/cajas/pages/cajas-lista/cajas-lista.component.ts	1969-12-31 18:00:00
++++ b/dojo-app/src/app/features/cajas/pages/cajas-lista/cajas-lista.component.ts	2026-11-01 17:17:31
+@@ -0,0 +1,99 @@
++import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
++import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
++import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
++import { MatButtonModule } from '@angular/material/button';
++import { MatFormFieldModule } from '@angular/material/form-field';
++import { MatInputModule } from '@angular/material/input';
++import { MatSelectModule } from '@angular/material/select';
++import { MatTableModule } from '@angular/material/table';
++import { ErrorApp } from '@core/errores/error-app';
++import { NotificacionService } from '@core/ui/notificacion.service';
++import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
++import { SiPermisoDirective } from '@shared/directives/si-permiso.directive';
++import { mensajeError, noSoloEspacios } from '@shared/validators/texto.validators';
++import { AlmacenesService } from '../../../almacenes/services/almacenes.service';
++import { Caja } from '../../models/caja.model';
++import { CajasService } from '../../services/cajas.service';
++import { Subject, catchError, of, switchMap } from 'rxjs';
++
++/** Cajas por almacén: elegir almacén, ver sus cajas y agregar nuevas. */
++@Component({
++  selector: 'app-cajas-lista',
++  imports: [
++    ReactiveFormsModule,
++    MatSelectModule,
++    MatFormFieldModule,
++    MatInputModule,
++    MatButtonModule,
++    MatTableModule,
++    PageHeaderComponent,
++    SiPermisoDirective,
++  ],
++  changeDetection: ChangeDetectionStrategy.OnPush,
++  templateUrl: './cajas-lista.component.html',
++})
++export class CajasListaComponent {
++  private readonly cajasService = inject(CajasService);
++  private readonly notificacion = inject(NotificacionService);
++
++  /** Solo almacenes activos: a uno inactivo no se le agregan cajas. */
++  protected readonly almacenes = toSignal(inject(AlmacenesService).listar(true), {
++    initialValue: [],
++  });
++  protected readonly almacenId = signal<number | null>(null);
++  protected readonly cajas = signal<Caja[]>([]);
++  protected readonly cargando = signal(false);
++  protected readonly columnas = ['nombre', 'estado'];
++  protected readonly mensajeError = mensajeError;
++
++  protected readonly almacenElegido = computed(() =>
++    this.almacenes().find((a) => a.id === this.almacenId()),
++  );
++
++  protected readonly form = inject(NonNullableFormBuilder).group({
++    nombre: ['', [Validators.required, noSoloEspacios, Validators.maxLength(60)]],
++  });
++
++  /** Cada almacén elegido; switchMap cancela la consulta anterior si el usuario cambia rápido. */
++  private readonly seleccion$ = new Subject<number>();
++
++  constructor() {
++    this.seleccion$
++      .pipe(
++        switchMap((id) =>
++          this.cajasService.listarPorAlmacen(id).pipe(catchError(() => of<Caja[]>([]))),
++        ),
++        takeUntilDestroyed(),
++      )
++      .subscribe((cajas) => {
++        this.cajas.set(cajas);
++        this.cargando.set(false);
++      });
++  }
++
++  protected elegirAlmacen(id: number): void {
++    this.almacenId.set(id);
++    this.cajas.set([]);
++    this.cargando.set(true);
++    this.seleccion$.next(id);
++  }
++
++  protected agregar(): void {
++    const almacenId = this.almacenId();
++    if (almacenId === null || this.form.invalid) {
++      this.form.markAllAsTouched();
++      return;
++    }
++    const nombre = this.form.getRawValue().nombre.trim();
++    this.cajasService.crear({ nombre, almacen_id: almacenId }).subscribe({
++      next: (caja) => {
++        this.cajas.update((lista) => [...lista, caja]);
++        this.form.reset();
++        this.notificacion.exito(`Caja ${caja.nombre} registrada`);
++      },
++      error: (err: ErrorApp) => {
++        if (!err.notificado) this.notificacion.error(err.message);
++      },
++    });
++  }
++}
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/features/cajas/services/cajas.service.ts b/dojo-app/src/app/features/cajas/services/cajas.service.ts
+--- a/dojo-app/src/app/features/cajas/services/cajas.service.ts	1969-12-31 18:00:00
++++ b/dojo-app/src/app/features/cajas/services/cajas.service.ts	2026-11-01 17:17:31
+@@ -0,0 +1,21 @@
++import { HttpClient, HttpParams } from '@angular/common/http';
++import { Injectable, inject } from '@angular/core';
++import { API_URL } from '@core/http/api-url';
++import { Respuesta } from '@core/modelos/respuesta.model';
++import { Observable, map } from 'rxjs';
++import { Caja, CajaAlta } from '../models/caja.model';
++
++@Injectable({ providedIn: 'root' })
++export class CajasService {
++  private readonly http = inject(HttpClient);
++  private readonly url = `${inject(API_URL)}/cajas`;
++
++  listarPorAlmacen(almacenId: number): Observable<Caja[]> {
++    const params = new HttpParams().set('almacen_id', almacenId);
++    return this.http.get<Respuesta<Caja[]>>(this.url, { params }).pipe(map((r) => r.datos ?? []));
++  }
++
++  crear(alta: CajaAlta): Observable<Caja> {
++    return this.http.post<Respuesta<Caja>>(this.url, alta).pipe(map((r) => r.datos));
++  }
++}
+diff --color -ruN -x node_modules -x dist -x .angular -x coverage a/dojo-app/src/app/features/inicio/inicio.component.ts b/dojo-app/src/app/features/inicio/inicio.component.ts
+--- a/dojo-app/src/app/features/inicio/inicio.component.ts	2026-11-01 16:57:02
++++ b/dojo-app/src/app/features/inicio/inicio.component.ts	2026-11-01 17:17:30
+@@ -19,6 +19,11 @@
+         <mat-card-content>Catálogo con filtros, alta y edición.</mat-card-content>
+         <mat-card-actions><a mat-button routerLink="/almacenes">Abrir</a></mat-card-actions>
+       </mat-card>
++      <mat-card *appSiPermiso="'cajas.ver'" appearance="outlined">
++        <mat-card-header><mat-card-title>Cajas</mat-card-title></mat-card-header>
++        <mat-card-content>Cajas registradoras por almacén.</mat-card-content>
++        <mat-card-actions><a mat-button routerLink="/cajas">Abrir</a></mat-card-actions>
++      </mat-card>
+       <mat-card *appSiPermiso="'reportes.ver'" appearance="outlined">
+         <mat-card-header><mat-card-title>Reportes</mat-card-title></mat-card-header>
+         <mat-card-content>Exporta el catálogo a CSV.</mat-card-content>

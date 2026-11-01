@@ -1,0 +1,88 @@
+<app-page-header
+  titulo="Almacenes"
+  [subtitulo]="store.totalActivos() + ' activos de ' + store.almacenes().length"
+>
+  <a mat-flat-button routerLink="nuevo" *appSiPermiso="'almacenes.editar'">Nuevo almacén</a>
+</app-page-header>
+
+<section class="filtros" aria-label="Filtros">
+  <mat-form-field appearance="outline">
+    <mat-label>Buscar por clave o nombre</mat-label>
+    <input
+      #busqueda
+      matInput
+      type="search"
+      [value]="store.texto()"
+      (input)="filtrarTexto(busqueda.value)"
+    />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Estatus</mat-label>
+    <mat-select [value]="store.estatus()" (selectionChange)="filtrarEstatus($event.value)">
+      <mat-option value="todos">Todos</mat-option>
+      <mat-option value="activos">Activos</mat-option>
+      <mat-option value="inactivos">Inactivos</mat-option>
+    </mat-select>
+  </mat-form-field>
+</section>
+
+@if (store.error(); as error) {
+  <p class="error" role="alert">
+    {{ error }}
+    <button mat-button type="button" (click)="store.cargar()">Reintentar</button>
+  </p>
+}
+
+<div class="tabla">
+  <table mat-table [dataSource]="pagina()" aria-label="Almacenes">
+    <ng-container matColumnDef="clave">
+      <th mat-header-cell *matHeaderCellDef>Clave</th>
+      <td mat-cell *matCellDef="let almacen">{{ almacen.clave }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="nombre">
+      <th mat-header-cell *matHeaderCellDef>Nombre</th>
+      <td mat-cell *matCellDef="let almacen">{{ almacen.nombre }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="estatus">
+      <th mat-header-cell *matHeaderCellDef>Estatus</th>
+      <td mat-cell *matCellDef="let almacen">
+        <span class="estatus" [class.inactivo]="!almacen.activo">{{
+          almacen.activo | estatus
+        }}</span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef><span class="oculto">Acciones</span></th>
+      <td mat-cell *matCellDef="let almacen" class="acciones">
+        <a
+          mat-button
+          [routerLink]="[almacen.id, 'editar']"
+          [attr.aria-label]="'Editar ' + almacen.clave"
+          *appSiPermiso="'almacenes.editar'"
+          >Editar</a
+        >
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+    <tr mat-row *matRowDef="let fila; columns: columnas"></tr>
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell vacio" [attr.colspan]="columnas.length">
+        {{ store.cargando() ? 'Cargando…' : 'No hay almacenes que coincidan con los filtros' }}
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    [length]="store.filtrados().length"
+    [pageIndex]="indice()"
+    [pageSize]="tamano()"
+    [pageSizeOptions]="tamanos"
+    (page)="cambiarPagina($event)"
+    aria-label="Paginación de almacenes"
+  />
+</div>

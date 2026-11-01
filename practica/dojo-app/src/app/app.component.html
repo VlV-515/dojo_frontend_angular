@@ -1,0 +1,34 @@
+<mat-toolbar class="barra">
+  <a routerLink="/inicio" class="marca">Dojo App</a>
+  <span class="entorno">{{ entorno }}</span>
+
+  @if (sesion.autenticado()) {
+    <nav aria-label="Principal">
+      <a
+        mat-button
+        routerLink="/almacenes"
+        routerLinkActive="activo"
+        *appSiPermiso="'almacenes.ver'"
+        >Almacenes</a
+      >
+      <a mat-button routerLink="/reportes" routerLinkActive="activo" *appSiPermiso="'reportes.ver'"
+        >Reportes</a
+      >
+    </nav>
+    <span class="espacio"></span>
+    <button mat-button type="button" (click)="salir()">Salir</button>
+  } @else {
+    <span class="espacio"></span>
+    <a mat-button routerLink="/login">Entrar</a>
+  }
+</mat-toolbar>
+
+@if (carga.cargando()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando" />
+} @else {
+  <div class="sin-carga"></div>
+}
+
+<main class="contenido">
+  <router-outlet />
+</main>

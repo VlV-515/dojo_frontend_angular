@@ -1,0 +1,25 @@
+# Bitácora personal del alumno y ajustes locales de Claude Code
+/progreso.local.md
+/CLAUDE.local.md
+/.claude/settings.local.json
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+coverage/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# Environments personales (nunca se versionan)
+**/environment.local.ts
+
+# Sistema operativo / editores
+.DS_Store
+.idea/
+.vscode/
+
+# Cheatsheet: entorno de generación
+/recursos/cheatsheet/.venv/
+__pycache__/

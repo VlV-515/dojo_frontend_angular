@@ -1,0 +1,34 @@
+<app-page-header
+  [titulo]="esEdicion ? 'Editar almacén' : 'Nuevo almacén'"
+  subtitulo="Los campos marcados con * son obligatorios"
+/>
+
+<form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+  <mat-form-field appearance="outline">
+    <mat-label>Clave</mat-label>
+    <input matInput formControlName="clave" maxlength="20" autocomplete="off" required />
+    <mat-hint>Ejemplo: ALM-13. Se guarda en mayúsculas.</mat-hint>
+    @if (form.controls.clave.invalid) {
+      <mat-error>{{ mensajeError(form.controls.clave) }}</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Nombre</mat-label>
+    <input matInput formControlName="nombre" maxlength="80" autocomplete="off" required />
+    @if (form.controls.nombre.invalid) {
+      <mat-error>{{ mensajeError(form.controls.nombre) }}</mat-error>
+    }
+  </mat-form-field>
+
+  @if (errorGeneral(); as error) {
+    <p class="error" role="alert">{{ error }}</p>
+  }
+
+  <div class="botones">
+    <a mat-button routerLink="/almacenes">Cancelar</a>
+    <button mat-flat-button type="submit" [disabled]="guardando()">
+      {{ guardando() ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </div>
+</form>
